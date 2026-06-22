@@ -399,8 +399,38 @@ def test_prometheus_label_value_sanitization_non_string_types():
     print("✅ Non-string values are coerced to str")
 
 
+def test_model_group_in_deployment_metrics():
+    """
+    Regression for https://github.com/BerriAI/litellm/issues/30748
+
+    Deployment-level metrics historically carried only model_id, so a single
+    model group spread across several deployments showed up as repeated
+    model_id series with no way to tell which configured group each belonged
+    to. These metrics must now expose model_group alongside model_id.
+    """
+    model_group_label = UserAPIKeyLabelNames.MODEL_GROUP.value
+
+    metrics_with_model_group = [
+        "litellm_deployment_state",
+        "litellm_deployment_tpm_limit",
+        "litellm_deployment_rpm_limit",
+        "litellm_deployment_cooled_down",
+        "litellm_deployment_latency_per_output_token",
+    ]
+
+    for metric_name in metrics_with_model_group:
+        labels = PrometheusMetricLabels.get_labels(metric_name)
+        assert (
+            model_group_label in labels
+        ), f"Metric {metric_name} should contain model_group label"
+        assert (
+            UserAPIKeyLabelNames.MODEL_ID.value in labels
+        ), f"Metric {metric_name} should still contain model_id label"
+
+
 if __name__ == "__main__":
     test_user_email_in_required_metrics()
+    test_model_group_in_deployment_metrics()
     test_user_email_label_exists()
     test_prometheus_metric_labels_structure()
     test_route_normalization_for_responses_api()

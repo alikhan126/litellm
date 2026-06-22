@@ -678,6 +678,7 @@ async def test_async_log_failure_event(prometheus_logger):
         model_id="model-123",
         api_base="https://api.openai.com",
         api_provider="openai",
+        model_group="openai-gpt",
     )
 
     # deployment failure responses incremented - verify key labels are populated
@@ -993,6 +994,7 @@ def test_set_llm_deployment_success_metrics(prometheus_logger):
         model_id="model-123",
         api_base="https://api.openai.com",
         api_provider="openai",
+        model_group="my_custom_model_group",
     )
 
     # Verify success responses metric
@@ -1030,6 +1032,7 @@ def test_set_llm_deployment_success_metrics(prometheus_logger):
     # Verify latency per output token metric
     prometheus_logger.litellm_deployment_latency_per_output_token.labels.assert_called_once_with(
         litellm_model_name="gpt-5-mini",
+        model_group="my_custom_model_group",
         model_id="model-123",
         api_base="https://api.openai.com",
         api_provider="openai",
@@ -1141,12 +1144,14 @@ def test_deployment_state_management(prometheus_logger):
         "model_id": "model-123",
         "api_base": "https://api.openai.com",
         "api_provider": "openai",
+        "model_group": "openai-gpt",
     }
 
     # Test set_deployment_healthy (state=0)
     prometheus_logger.set_deployment_healthy(**test_params)
     prometheus_logger.litellm_deployment_state.labels.assert_called_with(
         litellm_model_name=test_params["litellm_model_name"],
+        model_group=test_params["model_group"],
         model_id=test_params["model_id"],
         api_base=test_params["api_base"],
         api_provider=test_params["api_provider"],
@@ -1190,12 +1195,49 @@ def test_increment_deployment_cooled_down(prometheus_logger):
         api_base="https://api.openai.com",
         api_provider="openai",
         exception_status="429",
+        model_group="openai-gpt",
     )
 
     prometheus_logger.litellm_deployment_cooled_down.labels.assert_called_once_with(
-        "gpt-5-mini", "model-123", "https://api.openai.com", "openai", "429"
+        litellm_model_name="gpt-5-mini",
+        model_group="openai-gpt",
+        model_id="model-123",
+        api_base="https://api.openai.com",
+        api_provider="openai",
+        exception_status="429",
     )
     mock_chain.inc.assert_called_once()
+
+
+def test_set_deployment_tpm_rpm_limit_metrics_includes_model_group(prometheus_logger):
+    """
+    Regression for https://github.com/BerriAI/litellm/issues/30748: the tpm/rpm
+    limit gauges must carry model_group alongside model_id so a limit can be
+    attributed to its configured model group, not just an opaque deployment id.
+    """
+    prometheus_logger.litellm_deployment_tpm_limit = MagicMock()
+    prometheus_logger.litellm_deployment_rpm_limit = MagicMock()
+
+    prometheus_logger._set_deployment_tpm_rpm_limit_metrics(
+        model_info={"tpm": 1000, "rpm": 60},
+        litellm_params={},
+        litellm_model_name="gpt-5-mini",
+        model_id="model-123",
+        api_base="https://api.openai.com",
+        llm_provider="openai",
+        model_group="openai-gpt",
+    )
+
+    tpm_labels = prometheus_logger.litellm_deployment_tpm_limit.labels.call_args.kwargs
+    rpm_labels = prometheus_logger.litellm_deployment_rpm_limit.labels.call_args.kwargs
+
+    assert tpm_labels["model_group"] == "openai-gpt"
+    assert tpm_labels["litellm_model_name"] == "gpt-5-mini"
+    assert tpm_labels["model_id"] == "model-123"
+    assert rpm_labels["model_group"] == "openai-gpt"
+
+    prometheus_logger.litellm_deployment_tpm_limit.labels().set.assert_called_with(1000)
+    prometheus_logger.litellm_deployment_rpm_limit.labels().set.assert_called_with(60)
 
 
 @pytest.mark.parametrize("enable_end_user_cost_tracking_prometheus_only", [True, False])

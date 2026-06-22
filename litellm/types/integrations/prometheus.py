@@ -359,6 +359,7 @@ class PrometheusMetricLabels:
 
     litellm_deployment_latency_per_output_token = [
         UserAPIKeyLabelNames.v2_LITELLM_MODEL_NAME.value,
+        UserAPIKeyLabelNames.MODEL_GROUP.value,
         UserAPIKeyLabelNames.MODEL_ID.value,
         UserAPIKeyLabelNames.API_BASE.value,
         UserAPIKeyLabelNames.API_PROVIDER.value,
@@ -480,6 +481,7 @@ class PrometheusMetricLabels:
 
     litellm_deployment_state = [
         UserAPIKeyLabelNames.v2_LITELLM_MODEL_NAME.value,
+        UserAPIKeyLabelNames.MODEL_GROUP.value,
         UserAPIKeyLabelNames.MODEL_ID.value,
         UserAPIKeyLabelNames.API_BASE.value,
         UserAPIKeyLabelNames.API_PROVIDER.value,
@@ -487,6 +489,7 @@ class PrometheusMetricLabels:
 
     litellm_deployment_tpm_limit = [
         UserAPIKeyLabelNames.v2_LITELLM_MODEL_NAME.value,
+        UserAPIKeyLabelNames.MODEL_GROUP.value,
         UserAPIKeyLabelNames.MODEL_ID.value,
         UserAPIKeyLabelNames.API_BASE.value,
         UserAPIKeyLabelNames.API_PROVIDER.value,
@@ -496,6 +499,7 @@ class PrometheusMetricLabels:
 
     litellm_deployment_cooled_down = [
         UserAPIKeyLabelNames.v2_LITELLM_MODEL_NAME.value,
+        UserAPIKeyLabelNames.MODEL_GROUP.value,
         UserAPIKeyLabelNames.MODEL_ID.value,
         UserAPIKeyLabelNames.API_BASE.value,
         UserAPIKeyLabelNames.API_PROVIDER.value,
